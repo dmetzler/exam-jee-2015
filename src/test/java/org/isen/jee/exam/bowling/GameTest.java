@@ -7,6 +7,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class GameTest {
 
+    private Game game;
+
+    @Before
+    public void doBefore() {
+        game = new GameImpl();
+    }
+
     /**
      * Dans ce test, on vérifiera que le jeu dans lequel le joueur lancer toutes
      * ses boules dans la goutière (c'est à dire qu'il ne fait tomber aucune
@@ -19,6 +26,15 @@ public class GameTest {
      */
     @Test
     public void testJeuGoutiere() throws Exception {
+        rollMany(0,20);
+
+        assertThat(game.getScore()).isEqualTo(0);
+    }
+
+    private void rollMany(int pins , int times) {
+        for(int i = 0; i< times; i++) {
+            game.hit(pins);
+        }
     }
 
     /**
@@ -32,7 +48,11 @@ public class GameTest {
      */
     @Test
     public void testJeuSimple() throws Exception {
+        rollMany(1,20);
+        assertThat(game.getScore()).isEqualTo(20);
     }
+
+
 
     /**
      * Dans ce test, on vérifiera un jeu, où il n'y a qu'un spare et une quille
@@ -46,6 +66,12 @@ public class GameTest {
      */
     @Test
     public void testSpare() throws Exception {
+        game.hit(8);
+        game.hit(2);
+        game.hit(3);
+        rollMany(0, 17);
+        assertThat(game.getScore()).isEqualTo(16);
+
     }
 
     /**
@@ -60,6 +86,11 @@ public class GameTest {
      */
     @Test
     public void testStrike() throws Exception {
+        game.hit(10);
+        game.hit(2);
+        game.hit(3);
+        rollMany(0,17);
+        assertThat(game.getScore()).isEqualTo(20);
     }
 
     /**
@@ -72,6 +103,25 @@ public class GameTest {
      */
     @Test
     public void testJeuExemple() throws Exception {
+        game.hit(2);
+        game.hit(6);
+        game.hit(3);
+        game.hit(5);
+        game.hit(8);
+        game.hit(2);
+        game.hit(7);
+        game.hit(3);
+        game.hit(10);
+        game.hit(1);
+        game.hit(6);
+        game.hit(2);
+        game.hit(7);
+        game.hit(5);
+        game.hit(5);
+        game.hit(10);
+        game.hit(5);
+        game.hit(3);
+        assertThat(game.getScore()).isEqualTo(132);
     }
 
     /**
@@ -85,5 +135,7 @@ public class GameTest {
      */
     @Test
     public void testJeuParfait() throws Exception {
+        rollMany(10,12);
+        assertThat(game.getScore()).isEqualTo(300);
     }
 }
