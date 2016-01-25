@@ -7,9 +7,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import javax.servlet.Servlet;
+import javax.servlet.annotation.WebServlet;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpException;
@@ -31,6 +33,7 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.reflections.Reflections;
 
 public class JettyHarness {
 
@@ -41,8 +44,7 @@ public class JettyHarness {
     private HttpClient httpClient;
     private static Server server;
 
-    private static int port = BASE_PORT
-            + (int) (Math.random() * MAX_PORT_DEVIATION);
+    private static int port = BASE_PORT + (int) (Math.random() * MAX_PORT_DEVIATION);
 
     protected static final String SERVLET_PATH = "/score";
     protected static final String SERVLET_URI = getBaseUri() + SERVLET_PATH;
@@ -60,8 +62,20 @@ public class JettyHarness {
         context.setContextPath("/" + CONTEXT_PATH);
         context.setParentLoaderPriority(true);
 
-        context.addServlet(new ServletHolder((Servlet) new BowlingScoreServlet()),
-                SERVLET_PATH);
+        Reflections reflections = new Reflections("org.isen.jee");
+
+        Set<Class<?>> servlets = reflections.getTypesAnnotatedWith(WebServlet.class);
+
+        for (Class<?> servletClass : servlets) {
+
+            WebServlet annotation = servletClass.getAnnotation(WebServlet.class);
+            if (annotation != null) {
+                for (String pattern : annotation.value()) {
+                    context.addServlet(new ServletHolder((Servlet) servletClass.newInstance()), pattern);
+                }
+            }
+
+        }
 
         server.setHandler(context);
         server.start();
@@ -85,8 +99,8 @@ public class JettyHarness {
 
     @After
     public void doAfter() throws Exception {
-        httpClient.getConnectionManager().closeIdleConnections(0,
-                TimeUnit.SECONDS);
+        httpClient.getConnectionManager()
+                .closeIdleConnections(0, TimeUnit.SECONDS);
     }
 
     public String get(String uri) throws IOException, HttpException {
@@ -105,8 +119,7 @@ public class JettyHarness {
 
         List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>(1);
         for (Entry<String, String> paramEntry : params.entrySet()) {
-            nameValuePairs.add(new BasicNameValuePair(paramEntry.getKey(),
-                    paramEntry.getValue()));
+            nameValuePairs.add(new BasicNameValuePair(paramEntry.getKey(), paramEntry.getValue()));
         }
         try {
             post.setEntity(new UrlEncodedFormEntity(nameValuePairs));
@@ -119,11 +132,13 @@ public class JettyHarness {
     private String executeAndReturnResult(HttpRequestBase method) {
         try {
             HttpResponse response = httpClient.execute(method);
-            int responseCode = response.getStatusLine().getStatusCode();
+            int responseCode = response.getStatusLine()
+                    .getStatusCode();
             if (responseCode >= 400) {
                 throw new WebRuntimeException(responseCode, "Bad request");
             }
-            InputStream content = response.getEntity().getContent();
+            InputStream content = response.getEntity()
+                    .getContent();
             return IOUtils.toString(content, "UTF-8");
         } catch (IOException e) {
             throw new WebRuntimeException(500, e.getMessage());
